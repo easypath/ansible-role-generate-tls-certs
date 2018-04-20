@@ -43,31 +43,31 @@ Example Playbook
 **vars.yaml:**
 ```
 ---
-cert_dir: ./certs
-generate_ca_cert: true
-generate_client_cert: true
-generate_server_cert: true
+  cert_dir: ./certs
+  generate_ca_cert: true
+  generate_client_cert: true
+  generate_server_cert: true
 
-# -------
-# CA CERT
-# -------
-tls_ca_cert: my-ca.pem
-tls_ca_csr: my-ca.csr
-tls_ca_key: my-ca.key
-tls_ca_country: CA
-tls_ca_state: Ontario
-tls_ca_locality: Toronto
-tls_ca_organization: My Company Inc.
-tls_ca_organizationalunit: IT
-tls_ca_commonname: My Certificate Authority
+  # -------
+  # CA CERT
+  # -------
+  tls_ca_cert: my-ca.pem
+  tls_ca_csr: my-ca.csr
+  tls_ca_key: my-ca.key
+  tls_ca_country: CA
+  tls_ca_state: Ontario
+  tls_ca_locality: Toronto
+  tls_ca_organization: My Company Inc.
+  tls_ca_organizationalunit: IT
+  tls_ca_commonname: My Certificate Authority
 
-# -----------
-# CLIENT CERT
-# -----------
-tls_client_cert: my-client.pem
-tls_client_key: my-client.key
-tls_client_csr: my-client.csr
-tls_client_commonname: My Client
+  # -----------
+  # CLIENT CERT
+  # -----------
+  tls_client_cert: my-client.pem
+  tls_client_key: my-client.key
+  tls_client_csr: my-client.csr
+  tls_client_commonname: My Client
 
 ```
 
