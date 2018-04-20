@@ -1,0 +1,80 @@
+---
+# tasks file for generate-tls-certs
+
+  - name: Generate CA private key
+    local_action:
+      module: openssl_privatekey
+      path: "{{cert_dir}}/{{tls_ca_key}}"
+      size: "{{tls_ca_key_size}}"
+    run_once: true
+    when: generate_ca_cert
+
+  - name: Generate self-signed cert for CA
+    local_action:
+      module: >
+        shell openssl req -x509 -new -days {{tls_ca_valid_days}} -sha256 -nodes -key {{cert_dir}}/{{tls_ca_key}} -out {{cert_dir}}/{{tls_ca_cert}}
+        -subj "{% if tls_ca_country is defined%}/C={{tls_ca_country}}{% endif %}{% if tls_ca_state is defined%}/ST={{tls_ca_state}}{% endif %}{% if tls_ca_locality is defined %}/L={{tls_ca_locality}}{% endif %}{% if tls_ca_organization is defined %}/O={{tls_ca_organization}}{% endif %}{% if tls_ca_organizationalunit is defined %}/OU={{tls_ca_organizationalunit}}{% endif %}/CN={{tls_ca_commonname}}{% if tls_ca_email is defined %}/emailAddress={{tls_ca_email}}{% endif %}"
+    ignore_errors: true
+    run_once: true
+    when: generate_ca_cert
+
+  - name: Generate client private key
+    local_action:
+      module: openssl_privatekey
+      path: "{{cert_dir}}/{{tls_client_key}}"
+      size: "{{tls_client_key_size}}"
+    run_once: true
+    when: generate_client_cert
+
+  - name: Generate CSR and key for client cert
+    local_action:
+      module: >
+        shell openssl req -newkey rsa:{{tls_client_key_size}} -nodes -subj "/CN={{tls_client_commonname}}"
+        -keyout "{{cert_dir}}/{{tls_client_key}}" -out "{{cert_dir}}/{{tls_client_csr}}"
+    ignore_errors: true
+    run_once: true
+    when: generate_client_cert
+
+  - name: Add required extension for client authentication
+    local_action:
+      module: >
+        shell echo extendedKeyUsage = clientAuth >> {{cert_dir}}/{{tls_client_extfile}}
+    ignore_errors: true
+    run_once: true
+    when: generate_client_cert
+
+  # @AB TODO: using OpenSSL CA serial file does not always generate unique serial when running playbook against multiple hosts
+  - name: Sign client cert request with CA
+    local_action:
+      module: >
+        shell openssl x509 -req -sha256 -days {{tls_client_valid_days}} -CA {{cert_dir}}/{{tls_ca_cert}} -CAkey {{cert_dir}}/{{tls_ca_key}}
+        -set_serial {{ 999999999 | random }} -in {{cert_dir}}/{{tls_client_csr}} -out {{cert_dir}}/{{tls_client_cert}} -extfile {{cert_dir}}/{{tls_client_extfile}}
+    ignore_errors: true
+    run_once: true
+    when: generate_client_cert
+
+  # Generate server cert
+  - name: Create CSR for server cert
+    local_action:
+      module: >
+        shell openssl req -newkey rsa:{{tls_server_key_size}} -nodes -subj "/CN={{inventory_hostname}}"
+        -keyout "{{cert_dir}}/{{inventory_hostname_short}}.key" -out "{{cert_dir}}/{{inventory_hostname_short}}.csr"
+    ignore_errors: true
+    when: generate_server_cert
+
+  - name: Generate certificate extensions file
+    local_action:
+      module: template
+      src: templates/server-cert-extfile.cnf.j2
+      dest: "{{cert_dir}}/{{inventory_hostname_short}}-extfile.cnf"
+    when: generate_server_cert
+
+  - name: Sign server cert request by CA
+    local_action:
+      module: >
+        shell openssl x509 -req -sha256 -days {{tls_server_valid_days}}
+        -CA "{{cert_dir}}/{{tls_ca_cert}}" -CAkey "{{cert_dir}}/{{tls_ca_key}}" -set_serial {{ 999999999 | random }}
+        -in "{{cert_dir}}/{{inventory_hostname_short}}.csr" -out "{{cert_dir}}/{{inventory_hostname_short}}.pem"
+        -extfile "{{cert_dir}}/{{inventory_hostname_short}}-extfile.cnf"
+    ignore_errors: true
+    when: generate_server_cert
