@@ -67,7 +67,9 @@
       module: template
       src: templates/server-cert-extfile.cnf.j2
       dest: "{{cert_dir}}/{{inventory_hostname_short}}-extfile.cnf"
-    when: generate_server_cert
+    when:
+      - generate_server_cert
+      - tls_server_enable_san
 
   - name: Sign server cert request by CA
     local_action:
@@ -75,6 +77,6 @@
         shell openssl x509 -req -sha256 -days {{tls_server_valid_days}}
         -CA "{{cert_dir}}/{{tls_ca_cert}}" -CAkey "{{cert_dir}}/{{tls_ca_key}}" -set_serial {{ 999999999 | random }}
         -in "{{cert_dir}}/{{inventory_hostname_short}}.csr" -out "{{cert_dir}}/{{inventory_hostname_short}}.pem"
-        -extfile "{{cert_dir}}/{{inventory_hostname_short}}-extfile.cnf"
+        {% if tls_server_enable_san %}-extfile "{{cert_dir}}/{{inventory_hostname_short}}-extfile.cnf"{% endif %}
     ignore_errors: true
     when: generate_server_cert

@@ -42,3 +42,5 @@ tls_client_valid_days: 730
 # 2 years
 tls_server_valid_days: 730
 tls_server_key_size: 4096
+# Enable Subject Alternate Name (SAN)
+tls_server_enable_san: true
