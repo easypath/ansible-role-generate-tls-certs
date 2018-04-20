@@ -2,6 +2,8 @@ Generate TLS certificates
 =========================
 Generates self-signed CA, client and server certificates. Runs locally on control machine. **Note:** Ansible crypto modules do not support self-signed certs, using `shell` command instead as required.
 
+**WARNING: re-running this role in the same output folder will overwrite any existing certs and keys!**
+
 
 Requirements
 ------------
