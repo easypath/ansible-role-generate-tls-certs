@@ -1,6 +1,6 @@
 ---
 # defaults file for generate-tls-certs
-
+generate_tls_certs: true
 # Do not put trailing slash "/"
 cert_dir: ./certs
 generate_ca_cert: false
