@@ -2,9 +2,14 @@
   # Generate server cert
   - name: Create CSR for server cert
     local_action:
-      module: >
-        shell openssl req -newkey rsa:{{tls_server_key_size}} -nodes -subj "/CN={{inventory_hostname}}"
+      module: |
+        shell if [ ! -e {{cert_dir}}/{{inventory_hostname_short}}.csr ]
+        then
+        openssl req -newkey rsa:{{tls_server_key_size}} -nodes -subj "/CN={{inventory_hostname}}" \
         -keyout "{{cert_dir}}/{{inventory_hostname_short}}.key" -out "{{cert_dir}}/{{inventory_hostname_short}}.csr"
+        fi
+    args:
+      executable: /bin/bash
     ignore_errors: true
     when: generate_server_cert
 
@@ -19,10 +24,15 @@
 
   - name: Sign server cert request by CA
     local_action:
-      module: >
-        shell openssl x509 -req -sha256 -days {{tls_server_valid_days}}
-        -CA "{{cert_dir}}/{{tls_ca_cert}}" -CAkey "{{cert_dir}}/{{tls_ca_key}}" -set_serial {{ 999999999 | random }}
-        -in "{{cert_dir}}/{{inventory_hostname_short}}.csr" -out "{{cert_dir}}/{{inventory_hostname_short}}.pem"
-        {% if tls_server_enable_san %}-extfile "{{cert_dir}}/{{inventory_hostname_short}}-extfile.cnf"{% endif %}
+      module: |
+        shell if [ ! -e {{cert_dir}}/{{inventory_hostname_short}}.pem ]
+        then
+        openssl x509 -req -sha256 -days {{tls_server_valid_days}} \
+        -CA "{{cert_dir}}/{{tls_ca_cert}}" -CAkey "{{cert_dir}}/{{tls_ca_key}}" -set_serial {{ 999999999 | random }} \
+        -in "{{cert_dir}}/{{inventory_hostname_short}}.csr" -out "{{cert_dir}}/{{inventory_hostname_short}}.pem" {% if tls_server_enable_san %}-extfile "{{cert_dir}}/{{inventory_hostname_short}}-extfile.cnf"{% endif %}
+        
+        fi
+    args:
+      executable: /bin/bash
     ignore_errors: true
     when: generate_server_cert

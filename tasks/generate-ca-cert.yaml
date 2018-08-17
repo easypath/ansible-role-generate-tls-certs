@@ -8,8 +8,13 @@
 
   - name: Generate self-signed cert for CA
     local_action:
-      module: >
-        shell openssl req -x509 -new -days {{tls_ca_valid_days}} -sha256 -nodes -key {{cert_dir}}/{{tls_ca_key}} -out {{cert_dir}}/{{tls_ca_cert}}
+      module: |
+        shell if [ ! -e {{cert_dir}}/{{tls_ca_cert}} ]
+        then
+        openssl req -x509 -new -days {{tls_ca_valid_days}} -sha256 -nodes -key {{cert_dir}}/{{tls_ca_key}} -out {{cert_dir}}/{{tls_ca_cert}} \
         -subj "{% if tls_ca_country is defined%}/C={{tls_ca_country}}{% endif %}{% if tls_ca_state is defined%}/ST={{tls_ca_state}}{% endif %}{% if tls_ca_locality is defined %}/L={{tls_ca_locality}}{% endif %}{% if tls_ca_organization is defined %}/O={{tls_ca_organization}}{% endif %}{% if tls_ca_organizationalunit is defined %}/OU={{tls_ca_organizationalunit}}{% endif %}/CN={{tls_ca_commonname}}{% if tls_ca_email is defined %}/emailAddress={{tls_ca_email}}{% endif %}"
+        fi
+    args:
+      executable: /bin/bash
     ignore_errors: true
     run_once: true

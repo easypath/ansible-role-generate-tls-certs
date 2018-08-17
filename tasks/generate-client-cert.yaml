@@ -10,9 +10,14 @@
 
   - name: Generate CSR and key for client cert
     local_action:
-      module: >
-        shell openssl req -newkey rsa:{{tls_client_key_size}} -nodes -subj "/CN={{tls_client_commonname}}"
+      module: |
+        shell if [ ! -e {{cert_dir}}/{{tls_client_csr}} ]
+        then
+        openssl req -newkey rsa:{{tls_client_key_size}} -nodes -subj "/CN={{tls_client_commonname}}" \
         -keyout "{{cert_dir}}/{{tls_client_key}}" -out "{{cert_dir}}/{{tls_client_csr}}"
+        fi
+    args:
+      executable: /bin/bash
     ignore_errors: true
     run_once: true
     when: generate_client_cert
@@ -28,9 +33,14 @@
   # @AB TODO: using OpenSSL CA serial file does not always generate unique serial when running playbook against multiple hosts
   - name: Sign client cert request with CA
     local_action:
-      module: >
-        shell openssl x509 -req -sha256 -days {{tls_client_valid_days}} -CA {{cert_dir}}/{{tls_ca_cert}} -CAkey {{cert_dir}}/{{tls_ca_key}}
+      module: |
+        shell if [ ! -e {{cert_dir}}/{{tls_client_cert}} ]
+        then
+        openssl x509 -req -sha256 -days {{tls_client_valid_days}} -CA {{cert_dir}}/{{tls_ca_cert}} -CAkey {{cert_dir}}/{{tls_ca_key}} \
         -set_serial {{ 999999999 | random }} -in {{cert_dir}}/{{tls_client_csr}} -out {{cert_dir}}/{{tls_client_cert}} -extfile {{cert_dir}}/{{tls_client_extfile}}
+        fi
+    args:
+      executable: /bin/bash
     ignore_errors: true
     run_once: true
     when: generate_client_cert
