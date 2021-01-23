@@ -1,0 +1,5 @@
+---
+- name: Run role
+  hosts: all
+  roles:
+    - role: generate-tls-certs

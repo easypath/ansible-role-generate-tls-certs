@@ -1,20 +1,19 @@
 ---
 # tasks file for generate-tls-certs
+- name: Generate CA cert
+  include_tasks: generate-ca-cert.yaml
+  when:
+    - generate_tls_certs
+    - generate_ca_cert|bool
 
-  - name: Generate CA cert
-    import_tasks: generate-ca-cert.yaml
-    when: 
-      - generate_tls_certs
-      - generate_ca_cert|bool
+- name: Generate client cert
+  include_tasks: generate-client-cert.yaml
+  when:
+    - generate_tls_certs
+    - generate_client_cert|bool
 
-  - name: Generate client cert
-    import_tasks: generate-client-cert.yaml
-    when: 
-      - generate_tls_certs
-      - generate_client_cert|bool
-
-  - name: Generate server cert
-    import_tasks: generate-server-cert.yaml
-    when: 
-      - generate_tls_certs
-      - generate_server_cert|bool
+- name: Generate server cert
+  include_tasks: generate-server-cert.yaml
+  when:
+    - generate_tls_certs
+    - generate_server_cert|bool

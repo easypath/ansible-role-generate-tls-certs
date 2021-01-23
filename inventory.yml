@@ -1,0 +1,18 @@
+---
+all:
+  hosts:
+    srv1:
+      ansible_host: 192.168.123.30
+    srv2:
+      ansible_host: 192.168.123.31
+  vars:
+    cert_dir: ./certs
+    generate_ca_cert: true
+    generate_client_cert: true
+    generate_server_cert: true
+    tls_ca_email: me@example.org
+    tls_ca_country: EU
+    tls_ca_state: Italy
+    tls_ca_locality: Rome
+    tls_ca_organization: Example Inc.
+    tls_ca_organizationalunit: SysAdmins
