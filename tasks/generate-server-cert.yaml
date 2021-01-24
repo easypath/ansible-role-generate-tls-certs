@@ -29,7 +29,7 @@
   become: yes
   copy:
     src: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
-    dest: "{{ gen_tls_remote_certs_dir }}/local/certs/"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/private/"
     mode: 0644
     owner: root
     group: root
@@ -89,7 +89,7 @@
   become: yes
   copy:
     src: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.pem"
-    dest: "{{ gen_tls_remote_certs_dir }}/local/private"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/certs"
     mode: 0600
     owner: root
     group: root
