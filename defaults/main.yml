@@ -32,7 +32,6 @@ tls_client_key: client.key
 tls_client_csr: client.csr
 tls_client_key_size: 4096
 tls_client_commonname: Client
-tls_client_extfile: extfile-client.cnf
 # 2 years
 tls_client_valid_days: 730
 
