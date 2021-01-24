@@ -1,0 +1,20 @@
+---
+all:
+  hosts:
+    srv1:
+      ansible_host: 192.168.123.30
+    srv2:
+      ansible_host: 192.168.123.31
+  vars:
+    gen_tls_cert_dir: ./certs
+    gen_tls_generate_ca_cert: true
+    gen_tls_generate_client_cert: true
+    gen_tls_generate_server_cert: true
+    gen_tls_ca_email: me@example.org
+    gen_tls_ca_country: EU
+    gen_tls_ca_state: Italy
+    gen_tls_ca_locality: Rome
+    gen_tls_ca_organization: Example Inc.
+    gen_tls_ca_organizationalunit: SysAdmins
+    gen_tls_populate_etc_hosts: yes
+    gen_tls_tld: example

@@ -1,46 +1,87 @@
 ---
+- name: Ensure the custom directories to host certificates are present
+  become: yes
+  file:
+    state: directory
+    recurse: yes
+    path: "{{ gen_tls_remote_certs_dir }}/{{ item.path }}"
+    mode: "{{ item.mode }}"
+    owner: root
+    group: root
+  loop:
+    - {path: local/certs, mode: "0755"}
+    - {path: local/private, mode: "0700"}
 
-  - name: Generate client private key
-    local_action:
-      module: openssl_privatekey
-      path: "{{cert_dir}}/{{tls_client_key}}"
-      size: "{{tls_client_key_size}}"
-    run_once: true
-    when: generate_client_cert
+- name: Check if the client private key exists
+  delegate_to: localhost
+  stat:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_key }}"
+  register: client_key
 
-  - name: Generate CSR and key for client cert
-    local_action:
-      module: |
-        shell if [ ! -e {{cert_dir}}/{{tls_client_csr}} ]
-        then
-        openssl req -newkey rsa:{{tls_client_key_size}} -nodes -subj "/CN={{tls_client_commonname}}" \
-        -keyout "{{cert_dir}}/{{tls_client_key}}" -out "{{cert_dir}}/{{tls_client_csr}}"
-        fi
-    args:
-      executable: /bin/bash
-    ignore_errors: true
-    run_once: true
-    when: generate_client_cert
+- name: Generate client private key
+  delegate_to: localhost
+  community.crypto.openssl_privatekey:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_key }}"
+    size: "{{ gen_tls_client_key_size}}"
+  when:
+    - not client_key.stat.exists
+    - generate_client_cert
+  register: client_key_file
 
-  - name: Add required extension for client authentication
-    local_action:
-      module: >
-        shell echo extendedKeyUsage = clientAuth >> {{cert_dir}}/{{tls_client_extfile}}
-    ignore_errors: true
-    run_once: true
-    when: generate_client_cert
+- name: Copy the key on the server
+  become: yes
+  copy:
+    src: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_key}}"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/private/"
+    mode: 0644
+    owner: root
+    group: root
+  when: client_key_file.changed or gen_tls_force_copy
 
-  # @AB TODO: using OpenSSL CA serial file does not always generate unique serial when running playbook against multiple hosts
-  - name: Sign client cert request with CA
-    local_action:
-      module: |
-        shell if [ ! -e {{cert_dir}}/{{tls_client_cert}} ]
-        then
-        openssl x509 -req -sha256 -days {{tls_client_valid_days}} -CA {{cert_dir}}/{{tls_ca_cert}} -CAkey {{cert_dir}}/{{tls_ca_key}} \
-        -set_serial {{ 999999999 | random }} -in {{cert_dir}}/{{tls_client_csr}} -out {{cert_dir}}/{{tls_client_cert}} -extfile {{cert_dir}}/{{tls_client_extfile}}
-        fi
-    args:
-      executable: /bin/bash
-    ignore_errors: true
-    run_once: true
-    when: generate_client_cert
+- name: Check if the client CSR exists
+  delegate_to: localhost
+  stat:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_csr }}"
+  register: client_csr
+
+- name: Generate CSR and key for client cert
+  delegate_to: localhost
+  community.crypto.openssl_csr:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_csr }}"
+    privatekey_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_key }}"
+    common_name: "{{ gen_tls_client_commonname }}"
+    extended_key_usage:
+      - clientAuth
+  when:
+    - not client_csr.stat.exists
+    - generate_client_cert
+
+- name: Check if the client cert exists
+  delegate_to: localhost
+  stat:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_cert }}"
+  register: client_crt
+
+- name: Create and sign server cert request by CA
+  delegate_to: localhost
+  community.crypto.x509_certificate:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_cert }}"
+    csr_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_csr }}"
+    ownca_not_after: "+{{ gen_tls_client_valid_days }}d"
+    ownca_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_cert }}"
+    ownca_privatekey_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_key }}"
+    provider: ownca
+  when:
+    - not client_crt.stat.exists
+    - generate_client_cert
+  register: client_cert_file
+
+- name: Copy the certificate to the remote machine
+  become: yes
+  copy:
+    src: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_cert }}"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/certs/"
+    mode: 0600
+    owner: root
+    group: root
+  when: client_cert_file.changed or gen_tls_force_copy

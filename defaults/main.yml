@@ -1,46 +1,54 @@
 ---
 # defaults file for generate-tls-certs
-generate_tls_certs: true
+gen_tls_generate_certs: true
 # Do not put trailing slash "/"
-cert_dir: ./certs
-generate_ca_cert: false
-generate_client_cert: false
-generate_server_cert: false
+gen_tls_cert_dir: ./certs
+gen_tls_remote_certs_dir: /etc/ssl
+gen_tls_remote_ca_certs_dir: /etc/ssl/certs
+gen_tls_generate_ca_cert: false
+gen_tls_generate_client_cert: false
+gen_tls_generate_server_cert: false
+gen_tls_force_copy: false
 
 # -------
 # CA CERT
 # -------
-tls_ca_cert: ca.pem
-tls_ca_csr: ca.csr
-tls_ca_key: ca.key
-tls_ca_key_size: 4096
+gen_tls_ca_cert: ca.crt
+gen_tls_ca_csr: ca.csr
+gen_tls_ca_key: ca.key
+gen_tls_ca_key_size: 4096
 # 10 years
-tls_ca_valid_days: 3650
-# tls_ca_country:
-# tls_ca_state:
-# tls_ca_locality:
-# tls_ca_organization:
-# tls_ca_organizationalunit:
-tls_ca_commonname: Certificate Authority
-#tls_ca_email:
+gen_tls_ca_valid_days: 3650
+# gen_tls_ca_country:
+# gen_tls_ca_state:
+# gen_tls_ca_locality:
+# gen_tls_ca_organization:
+# gen_tls_ca_organizationalunit:
+gen_tls_ca_commonname: Certificate Authority
+#gen_tls_ca_email:
 
 # -----------
 # CLIENT CERT
 # -----------
-tls_client_cert: client.pem
-tls_client_key: client.key
-tls_client_csr: client.csr
-tls_client_key_size: 4096
-tls_client_commonname: Client
-tls_client_extfile: extfile-client.cnf
+gen_tls_client_cert: client.pem
+gen_tls_client_key: client.key
+gen_tls_client_csr: client.csr
+gen_tls_client_key_size: 4096
+gen_tls_client_commonname: Client
 # 2 years
-tls_client_valid_days: 730
+gen_tls_client_valid_days: 730
 
 # -----------
 # SERVER CERT
 # -----------
 # 2 years
-tls_server_valid_days: 730
-tls_server_key_size: 4096
+gen_tls_server_valid_days: 730
+gen_tls_server_key_size: 4096
 # Enable Subject Alternate Name (SAN)
-tls_server_enable_san: true
+gen_tls_server_enable_san: true
+
+# -------------------
+# POPULATE /etc/hosts
+# -------------------
+gen_tls_populate_etc_hosts: false
+# gen_tls_tld:

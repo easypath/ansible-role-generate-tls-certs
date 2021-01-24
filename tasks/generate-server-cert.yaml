@@ -1,38 +1,96 @@
 ---
-  # Generate server cert
-  - name: Create CSR for server cert
-    local_action:
-      module: |
-        shell if [ ! -e {{cert_dir}}/{{inventory_hostname_short}}.csr ]
-        then
-        openssl req -newkey rsa:{{tls_server_key_size}} -nodes -subj "/CN={{inventory_hostname}}" \
-        -keyout "{{cert_dir}}/{{inventory_hostname_short}}.key" -out "{{cert_dir}}/{{inventory_hostname_short}}.csr"
-        fi
-    args:
-      executable: /bin/bash
-    ignore_errors: true
-    when: generate_server_cert
+- name: Ensure the custom directories to host certificates are present
+  become: yes
+  file:
+    state: directory
+    recurse: yes
+    path: "{{ gen_tls_remote_certs_dir }}/{{ item.path }}"
+    mode: "{{ item.mode }}"
+    owner: root
+    group: root
+  loop:
+    - {path: local/certs, mode: "0755"}
+    - {path: local/private, mode: "0700"}
 
-  - name: Generate certificate extensions file
-    local_action:
-      module: template
-      src: templates/server-cert-extfile.cnf.j2
-      dest: "{{cert_dir}}/{{inventory_hostname_short}}-extfile.cnf"
-    when:
-      - generate_server_cert
-      - tls_server_enable_san
+- name: Check if the server private key exists
+  delegate_to: localhost
+  stat:
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
+  register: server_key
 
-  - name: Sign server cert request by CA
-    local_action:
-      module: |
-        shell if [ ! -e {{cert_dir}}/{{inventory_hostname_short}}.pem ]
-        then
-        openssl x509 -req -sha256 -days {{tls_server_valid_days}} \
-        -CA "{{cert_dir}}/{{tls_ca_cert}}" -CAkey "{{cert_dir}}/{{tls_ca_key}}" -set_serial {{ 999999999 | random }} \
-        -in "{{cert_dir}}/{{inventory_hostname_short}}.csr" -out "{{cert_dir}}/{{inventory_hostname_short}}.pem" {% if tls_server_enable_san %}-extfile "{{cert_dir}}/{{inventory_hostname_short}}-extfile.cnf"{% endif %}
-        
-        fi
-    args:
-      executable: /bin/bash
-    ignore_errors: true
-    when: generate_server_cert
+- name: Create PEM private key for server
+  delegate_to: localhost
+  community.crypto.openssl_privatekey:
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
+  when: not server_key.stat.exists
+  register: server_key_file
+
+- name: Copy the key on the server
+  become: yes
+  copy:
+    src: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/private/"
+    mode: 0644
+    owner: root
+    group: root
+  when: server_key_file.changed or gen_tls_force_copy
+
+- name: Check if the server CSR exists
+  delegate_to: localhost
+  stat:
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.csr"
+  register: server_csr
+
+- name: Create CSR for server cert
+  delegate_to: localhost
+  community.crypto.openssl_csr:
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.csr"
+    privatekey_path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
+    common_name: "{{ inventory_hostname_short }}"
+  when:
+    - not server_csr.stat.exists
+    - gen_tls_generate_server_cert
+    - not gen_tls_server_enable_san
+
+- name: Create CSR for server cert
+  delegate_to: localhost
+  community.crypto.openssl_csr:
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.csr"
+    privatekey_path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
+    common_name: "{{inventory_hostname_short}}"
+    subject_alt_name: "{% if gen_tls_tld is defined %}DNS:{{ inventory_hostname_short }}.{{ gen_tls_tld }},{% endif %}DNS:{{inventory_hostname}},DNS:{{inventory_hostname_short}},IP:{{(alt_interface_ip is defined) | ternary(alt_interface_ip, ansible_default_ipv4.address)}},IP:0.0.0.0,IP:127.0.0.1"
+  when:
+    - not server_csr.stat.exists
+    - gen_tls_generate_server_cert
+    - gen_tls_server_enable_san
+
+- name: Check if the server cert exists
+  delegate_to: localhost
+  stat:
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.pem"
+  register: server_crt
+
+- name: Create and sign server cert request by CA
+  delegate_to: localhost
+  community.crypto.x509_certificate:
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.pem"
+    csr_path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.csr"
+    ownca_not_after: "+{{ gen_tls_server_valid_days }}d"
+    ownca_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_cert }}"
+    ownca_privatekey_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_key }}"
+    provider: ownca
+  ignore_errors: true
+  when:
+    - not server_crt.stat.exists
+    - gen_tls_generate_server_cert
+  register: server_cert_file
+
+- name: Copy the certificate to the remote machine
+  become: yes
+  copy:
+    src: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.pem"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/certs"
+    mode: 0600
+    owner: root
+    group: root
+  when: server_cert_file.changed or gen_tls_force_copy

@@ -1,20 +1,29 @@
 ---
 # tasks file for generate-tls-certs
+- name: Generate CA cert
+  include_tasks: generate-ca-cert.yaml
+  when:
+    - gen_tls_generate_certs
+    - gen_tls_generate_ca_cert|bool
 
-  - name: Generate CA cert
-    import_tasks: generate-ca-cert.yaml
-    when: 
-      - generate_tls_certs
-      - generate_ca_cert|bool
+- name: Generate client cert
+  include_tasks: generate-client-cert.yaml
+  when:
+    - gen_tls_generate_certs
+    - gen_tls_generate_client_cert|bool
 
-  - name: Generate client cert
-    import_tasks: generate-client-cert.yaml
-    when: 
-      - generate_tls_certs
-      - generate_client_cert|bool
+- name: Generate server cert
+  include_tasks: generate-server-cert.yaml
+  when:
+    - gen_tls_generate_certs
+    - gen_tls_generate_server_cert|bool
 
-  - name: Generate server cert
-    import_tasks: generate-server-cert.yaml
-    when: 
-      - generate_tls_certs
-      - generate_server_cert|bool
+- name: Populate /etc/hosts with inventory's hosts
+  include_tasks: populate-etc-hosts.yaml
+  when: gen_tls_populate_etc_hosts|bool
+
+- name: Update system CA on Debian
+  include_tasks: update-debian-ca.yaml
+  when:
+    - gen_tls_generate_certs
+    - ansible_os_family == "Debian"

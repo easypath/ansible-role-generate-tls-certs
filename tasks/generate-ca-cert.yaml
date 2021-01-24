@@ -1,20 +1,65 @@
 ---
-  - name: Generate CA private key
-    local_action:
-      module: openssl_privatekey
-      path: "{{cert_dir}}/{{tls_ca_key}}"
-      size: "{{tls_ca_key_size}}"
-    run_once: true
+- name: Check if the CA private key exists
+  delegate_to: localhost
+  ansible.builtin.stat:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_key }}"
+  register: ca_key
 
-  - name: Generate self-signed cert for CA
-    local_action:
-      module: |
-        shell if [ ! -e {{cert_dir}}/{{tls_ca_cert}} ]
-        then
-        openssl req -x509 -new -days {{tls_ca_valid_days}} -sha256 -nodes -key {{cert_dir}}/{{tls_ca_key}} -out {{cert_dir}}/{{tls_ca_cert}} \
-        -subj "{% if tls_ca_country is defined%}/C={{tls_ca_country}}{% endif %}{% if tls_ca_state is defined%}/ST={{tls_ca_state}}{% endif %}{% if tls_ca_locality is defined %}/L={{tls_ca_locality}}{% endif %}{% if tls_ca_organization is defined %}/O={{tls_ca_organization}}{% endif %}{% if tls_ca_organizationalunit is defined %}/OU={{tls_ca_organizationalunit}}{% endif %}/CN={{tls_ca_commonname}}{% if tls_ca_email is defined %}/emailAddress={{tls_ca_email}}{% endif %}"
-        fi
-    args:
-      executable: /bin/bash
-    ignore_errors: true
-    run_once: true
+- name: Generate CA private key
+  delegate_to: localhost
+  community.crypto.openssl_privatekey:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_key }}"
+    size: "{{ gen_tls_ca_key_size }}"
+  run_once: true
+  when: not ca_key.stat.exists
+
+- name: Check if the CA CSR exists
+  delegate_to: localhost
+  stat:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_csr }}"
+  register: ca_csr
+
+- name: Create CSR for CA
+  delegate_to: localhost
+  community.crypto.openssl_csr:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_csr }}"
+    privatekey_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_key }}"
+    basic_constraints:
+      - "CA:TRUE"
+    common_name: "{{ gen_tls_ca_commonname|default('') }}"
+    country_name: "{{ gen_tls_ca_country|default('') }}"
+    state_or_province_name: "{{ gen_tls_ca_state|default('') }}"
+    locality_name: "{{ gen_tls_ca_locality|default('') }}"
+    organization_name: "{{ gen_tls_ca_organization|default('') }}"
+    organizational_unit_name: "{{ gen_tls_ca_organizationalunit|default('') }}"
+    email_address: "{{ gen_tls_ca_email }}"
+    use_common_name_for_san: no
+  when: not ca_csr.stat.exists
+
+- name: Check if the CA cert exists
+  delegate_to: localhost
+  stat:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_cert }}"
+  register: ca_cert
+
+- name: Create and sign server cert for CA
+  delegate_to: localhost
+  community.crypto.x509_certificate:
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_cert }}"
+    privatekey_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_key }}"
+    csr_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_csr }}"
+    selfsigned_not_after: "+{{ gen_tls_ca_valid_days }}d"
+    provider: selfsigned
+  when: not ca_cert.stat.exists
+  register: ca_cert_file
+
+- name: Copy the CA certificate to the remote machine
+  copy:
+    src: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_cert }}"
+    dest: "{{ gen_tls_remote_ca_certs_dir }}"
+    mode: 0644
+    owner: root
+    group: root
+    force: yes
+    backup: yes
+  when: ca_cert_file.changed

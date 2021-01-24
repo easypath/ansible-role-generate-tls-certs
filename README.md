@@ -4,7 +4,9 @@ Generates self-signed CA, client and server certificates. Runs locally on contro
 
 Notes:
 - Will not overwrite any files in output cert dir
-- Ansible crypto modules do not support signing certs with own CA yet, using `shell` command instead. Should be resolved in Ansible 2.7 using the [ownca provider](https://github.com/ansible/ansible/commit/b61b113fb9e3fcfcb25f4a8aaabad618e3209ce1).
+- Will not copy the files to the remote servers if the local files are unchanged
+- Will optionally (see `gen_tls_populate_etc_hosts` variable) add to each machine's `/etc/hosts`
+  a line for each host in the inventory.
 
 
 Requirements
@@ -19,68 +21,59 @@ See `defaults/main.yml`
 
 Dependencies
 ------------
-- Refer to [Ansible Crypto modules](http://docs.ansible.com/ansible/latest/modules/list_of_crypto_modules.html)
 
+Install dependencies via
+
+```
+$ ansible-galaxy collection install community.crypto
+```
 
 Example Playbook
 ----------------
-**generate-certs.yaml:**
-```
----
 
-# ansible-playbook generate-certs.yaml -i localhost,
-# ansible-playbook generate-certs.yaml -i inventory.yaml
+The provided example `playbook.yml` targets two hosts (take a look at the
+`Vagrantfile`).
 
-- hosts: all
+All the cryptographic relevant operations are performed on the host machine and
+the resulting relevant files are `copy`ed to the remote target machine.
 
-  gather_facts: false
+  - `playbook.yml`
+  ```yaml
+  ---
+  - name: Run role
+    hosts: all
+    roles:
+      - role: generate-tls-certs
+  ```
 
-  tasks:
-    - include_vars: vars.yaml
+  - `inventory.yml`
+  ```yaml
+  ---
+  all:
+    hosts:
+      srv1:
+        ansible_host: 192.168.123.30
+      srv2:
+        ansible_host: 192.168.123.31
+    vars:
+      gen_tls_cert_dir: ./certs
+      gen_tls_generate_ca_cert: true
+      gen_tls_generate_client_cert: true
+      gen_tls_generate_server_cert: true
+      gen_tls_ca_email: me@example.org
+      gen_tls_ca_country: EU
+      gen_tls_ca_state: Italy
+      gen_tls_ca_locality: Rome
+      gen_tls_ca_organization: Example Inc.
+      gen_tls_ca_organizationalunit: SysAdmins
+      gen_tls_populate_etc_hosts: yes
+  ```
 
-    - name: Generate certs
-      import_role:
-        name: generate-tls-certs
+If you want to tinker, you can use `vagrant` with the provided `Vagrantfile`.
+It assumes `vagrant-libvirt` is installed (along with `libvirt`, of course).
 
-```
-
-**vars.yaml:**
-```
----
-  cert_dir: ./certs
-  generate_ca_cert: true
-  generate_client_cert: true
-  generate_server_cert: true
-
-  # -------
-  # CA CERT
-  # -------
-  tls_ca_cert: my-ca.pem
-  tls_ca_csr: my-ca.csr
-  tls_ca_key: my-ca.key
-  tls_ca_country: CA
-  tls_ca_state: Ontario
-  tls_ca_locality: Toronto
-  tls_ca_organization: My Company Inc.
-  tls_ca_organizationalunit: IT
-  tls_ca_commonname: My Certificate Authority
-
-  # -----------
-  # CLIENT CERT
-  # -----------
-  tls_client_cert: my-client.pem
-  tls_client_key: my-client.key
-  tls_client_csr: my-client.csr
-  tls_client_commonname: My Client
+Run it like this:
 
 ```
-
-
-License
--------
-BSD
-
-
-Author Information
-------------------
-[EasyPath IT Solutions Inc.](https://www.easypath.ca)
+$ vagrant up --provider=libvirt --provision
+```
