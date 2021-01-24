@@ -56,7 +56,7 @@
 - name: Copy the CA certificate to the remote machine
   copy:
     src: "{{ cert_dir }}/{{ tls_ca_cert }}"
-    dest: /etc/ssl/certs/
+    dest: "{{ remote_ca_certs_dir }}"
     mode: 0644
     owner: root
     group: root

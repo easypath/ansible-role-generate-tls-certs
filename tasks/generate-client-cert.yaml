@@ -4,7 +4,7 @@
   file:
     state: directory
     recurse: yes
-    path: "/etc/ssl/{{ item.path }}"
+    path: "{{ remote_certs_dir }}/{{ item.path }}"
     mode: "{{ item.mode }}"
     owner: root
     group: root
@@ -32,7 +32,7 @@
   become: yes
   copy:
     src: "{{ cert_dir }}/{{ tls_client_key}}"
-    dest: /etc/ssl/local/certs/
+    dest: "{{ remote_certs_dir }}/local/certs/"
     mode: 0644
     owner: root
     group: root
@@ -80,7 +80,7 @@
   become: yes
   copy:
     src: "{{ cert_dir }}/{{ tls_client_cert }}"
-    dest: /etc/ssl/local/private
+    dest: "{{ remote_certs_dir }}/local/private"
     mode: 0600
     owner: root
     group: root
