@@ -4,7 +4,7 @@
   file:
     state: directory
     recurse: yes
-    path: "{{ remote_certs_dir }}/{{ item.path }}"
+    path: "{{ gen_tls_remote_certs_dir }}/{{ item.path }}"
     mode: "{{ item.mode }}"
     owner: root
     group: root
@@ -15,14 +15,14 @@
 - name: Check if the client private key exists
   delegate_to: localhost
   stat:
-    path: "{{ cert_dir }}/{{ tls_client_key }}"
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_key }}"
   register: client_key
 
 - name: Generate client private key
   delegate_to: localhost
   community.crypto.openssl_privatekey:
-    path: "{{ cert_dir }}/{{ tls_client_key }}"
-    size: "{{ tls_client_key_size}}"
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_key }}"
+    size: "{{ gen_tls_client_key_size}}"
   when:
     - not client_key.stat.exists
     - generate_client_cert
@@ -31,8 +31,8 @@
 - name: Copy the key on the server
   become: yes
   copy:
-    src: "{{ cert_dir }}/{{ tls_client_key}}"
-    dest: "{{ remote_certs_dir }}/local/certs/"
+    src: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_key}}"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/certs/"
     mode: 0644
     owner: root
     group: root
@@ -41,15 +41,15 @@
 - name: Check if the client CSR exists
   delegate_to: localhost
   stat:
-    path: "{{ cert_dir }}/{{ tls_client_csr }}"
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_csr }}"
   register: client_csr
 
 - name: Generate CSR and key for client cert
   delegate_to: localhost
   community.crypto.openssl_csr:
-    path: "{{ cert_dir }}/{{ tls_client_csr }}"
-    privatekey_path: "{{ cert_dir }}/{{ tls_client_key }}"
-    common_name: "{{ tls_client_commonname }}"
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_csr }}"
+    privatekey_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_key }}"
+    common_name: "{{ gen_tls_client_commonname }}"
     extended_key_usage:
       - clientAuth
   when:
@@ -59,17 +59,17 @@
 - name: Check if the client cert exists
   delegate_to: localhost
   stat:
-    path: "{{ cert_dir }}/{{ tls_client_cert }}"
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_cert }}"
   register: client_crt
 
 - name: Create and sign server cert request by CA
   delegate_to: localhost
   community.crypto.x509_certificate:
-    path: "{{ cert_dir }}/{{ tls_client_cert }}"
-    csr_path: "{{ cert_dir }}/{{ tls_client_csr }}"
-    ownca_not_after: "+{{ tls_client_valid_days }}d"
-    ownca_path: "{{ cert_dir }}/{{ tls_ca_cert }}"
-    ownca_privatekey_path: "{{ cert_dir }}/{{ tls_ca_key }}"
+    path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_cert }}"
+    csr_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_csr }}"
+    ownca_not_after: "+{{ gen_tls_client_valid_days }}d"
+    ownca_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_cert }}"
+    ownca_privatekey_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_key }}"
     provider: ownca
   when:
     - not client_crt.stat.exists
@@ -79,8 +79,8 @@
 - name: Copy the certificate to the remote machine
   become: yes
   copy:
-    src: "{{ cert_dir }}/{{ tls_client_cert }}"
-    dest: "{{ remote_certs_dir }}/local/private"
+    src: "{{ gen_tls_cert_dir }}/{{ gen_tls_client_cert }}"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/private"
     mode: 0600
     owner: root
     group: root

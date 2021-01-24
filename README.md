@@ -5,7 +5,7 @@ Generates self-signed CA, client and server certificates. Runs locally on contro
 Notes:
 - Will not overwrite any files in output cert dir
 - Will not copy the files to the remote servers if the local files are unchanged
-- Will optionally (see `populate_etc_hosts` variable) add to each machine's `/etc/hosts`
+- Will optionally (see `gen_tls_populate_etc_hosts` variable) add to each machine's `/etc/hosts`
   a line for each host in the inventory.
 
 
@@ -56,17 +56,17 @@ the resulting relevant files are `copy`ed to the remote target machine.
       srv2:
         ansible_host: 192.168.123.31
     vars:
-      cert_dir: ./certs
-      generate_ca_cert: true
-      generate_client_cert: true
-      generate_server_cert: true
-      tls_ca_email: me@example.org
-      tls_ca_country: EU
-      tls_ca_state: Italy
-      tls_ca_locality: Rome
-      tls_ca_organization: Example Inc.
-      tls_ca_organizationalunit: SysAdmins
-      populate_etc_hosts: yes
+      gen_tls_cert_dir: ./certs
+      gen_tls_generate_ca_cert: true
+      gen_tls_generate_client_cert: true
+      gen_tls_generate_server_cert: true
+      gen_tls_ca_email: me@example.org
+      gen_tls_ca_country: EU
+      gen_tls_ca_state: Italy
+      gen_tls_ca_locality: Rome
+      gen_tls_ca_organization: Example Inc.
+      gen_tls_ca_organizationalunit: SysAdmins
+      gen_tls_populate_etc_hosts: yes
   ```
 
 If you want to tinker, you can use `vagrant` with the provided `Vagrantfile`.

@@ -4,7 +4,7 @@
   file:
     state: directory
     recurse: yes
-    path: "{{ remote_certs_dir }}/{{ item.path }}"
+    path: "{{ gen_tls_remote_certs_dir }}/{{ item.path }}"
     mode: "{{ item.mode }}"
     owner: root
     group: root
@@ -15,21 +15,21 @@
 - name: Check if the server private key exists
   delegate_to: localhost
   stat:
-    path: "{{ cert_dir }}/{{ inventory_hostname_short }}.key"
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
   register: server_key
 
 - name: Create PEM private key for server
   delegate_to: localhost
   community.crypto.openssl_privatekey:
-    path: "{{ cert_dir }}/{{ inventory_hostname_short }}.key"
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
   when: not server_key.stat.exists
   register: server_key_file
 
 - name: Copy the key on the server
   become: yes
   copy:
-    src: "{{ cert_dir }}/{{ inventory_hostname_short }}.key"
-    dest: "{{ remote_certs_dir }}/local/certs/"
+    src: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/certs/"
     mode: 0644
     owner: root
     group: root
@@ -38,58 +38,58 @@
 - name: Check if the server CSR exists
   delegate_to: localhost
   stat:
-    path: "{{ cert_dir }}/{{ inventory_hostname_short }}.csr"
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.csr"
   register: server_csr
 
 - name: Create CSR for server cert
   delegate_to: localhost
   community.crypto.openssl_csr:
-    path: "{{ cert_dir }}/{{ inventory_hostname_short }}.csr"
-    privatekey_path: "{{ cert_dir }}/{{ inventory_hostname_short }}.key"
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.csr"
+    privatekey_path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
     common_name: "{{ inventory_hostname_short }}"
   when:
     - not server_csr.stat.exists
-    - generate_server_cert
-    - not tls_server_enable_san
+    - gen_tls_generate_server_cert
+    - not gen_tls_server_enable_san
 
 - name: Create CSR for server cert
   delegate_to: localhost
   community.crypto.openssl_csr:
-    path: "{{ cert_dir }}/{{ inventory_hostname_short }}.csr"
-    privatekey_path: "{{ cert_dir }}/{{ inventory_hostname_short }}.key"
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.csr"
+    privatekey_path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
     common_name: "{{inventory_hostname_short}}"
     subject_alt_name: "DNS:{{inventory_hostname}},DNS:{{inventory_hostname_short}},IP:{{(alt_interface_ip is defined) | ternary(alt_interface_ip, ansible_default_ipv4.address)}},IP:0.0.0.0,IP:127.0.0.1"
   when:
     - not server_csr.stat.exists
-    - generate_server_cert
-    - tls_server_enable_san
+    - gen_tls_generate_server_cert
+    - gen_tls_server_enable_san
 
 - name: Check if the server cert exists
   delegate_to: localhost
   stat:
-    path: "{{ cert_dir }}/{{ inventory_hostname_short }}.pem"
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.pem"
   register: server_crt
 
 - name: Create and sign server cert request by CA
   delegate_to: localhost
   community.crypto.x509_certificate:
-    path: "{{ cert_dir }}/{{ inventory_hostname_short }}.pem"
-    csr_path: "{{ cert_dir }}/{{ inventory_hostname_short }}.csr"
-    ownca_not_after: "+{{ tls_server_valid_days }}d"
-    ownca_path: "{{ cert_dir }}/{{ tls_ca_cert }}"
-    ownca_privatekey_path: "{{ cert_dir }}/{{ tls_ca_key }}"
+    path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.pem"
+    csr_path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.csr"
+    ownca_not_after: "+{{ gen_tls_server_valid_days }}d"
+    ownca_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_cert }}"
+    ownca_privatekey_path: "{{ gen_tls_cert_dir }}/{{ gen_tls_ca_key }}"
     provider: ownca
   ignore_errors: true
   when:
     - not server_crt.stat.exists
-    - generate_server_cert
+    - gen_tls_generate_server_cert
   register: server_cert_file
 
 - name: Copy the certificate to the remote machine
   become: yes
   copy:
-    src: "{{ cert_dir }}/{{ inventory_hostname_short }}.pem"
-    dest: "{{ remote_certs_dir }}/local/private"
+    src: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.pem"
+    dest: "{{ gen_tls_remote_certs_dir }}/local/private"
     mode: 0600
     owner: root
     group: root

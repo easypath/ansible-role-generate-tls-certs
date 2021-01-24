@@ -3,21 +3,21 @@
 - name: Generate CA cert
   include_tasks: generate-ca-cert.yaml
   when:
-    - generate_tls_certs
-    - generate_ca_cert|bool
+    - gen_tls_generate_certs
+    - gen_tls_generate_ca_cert|bool
 
 - name: Generate client cert
   include_tasks: generate-client-cert.yaml
   when:
-    - generate_tls_certs
-    - generate_client_cert|bool
+    - gen_tls_generate_certs
+    - gen_tls_generate_client_cert|bool
 
 - name: Generate server cert
   include_tasks: generate-server-cert.yaml
   when:
-    - generate_tls_certs
-    - generate_server_cert|bool
+    - gen_tls_generate_certs
+    - gen_tls_generate_server_cert|bool
 
 - name: Populate /etc/hosts with inventory's hosts
   include_tasks: populate-etc-hosts.yaml
-  when: populate_etc_hosts|bool
+  when: gen_tls_populate_etc_hosts|bool
