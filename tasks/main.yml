@@ -21,3 +21,9 @@
 - name: Populate /etc/hosts with inventory's hosts
   include_tasks: populate-etc-hosts.yaml
   when: gen_tls_populate_etc_hosts|bool
+
+- name: Update system CA on Debian
+  include_tasks: update-debian-ca.yaml
+  when:
+    - gen_tls_generate_certs
+    - ansible_os_family == "Debian"

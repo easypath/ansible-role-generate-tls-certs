@@ -1,0 +1,8 @@
+---
+- name: Copy the CA certificate to directory for system CA update
+  become: yes
+  shell: "cp {{ gen_tls_remote_ca_certs_dir }}/{{ gen_tls_ca_cert }} /usr/local/share/ca-certificates"
+
+- name: Update the system CA
+  become: yes
+  shell: /usr/sbin/update-ca-certificates

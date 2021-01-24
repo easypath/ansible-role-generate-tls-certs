@@ -8,11 +8,12 @@ gen_tls_remote_ca_certs_dir: /etc/ssl/certs
 gen_tls_generate_ca_cert: false
 gen_tls_generate_client_cert: false
 gen_tls_generate_server_cert: false
+gen_tls_force_copy: false
 
 # -------
 # CA CERT
 # -------
-gen_tls_ca_cert: ca.pem
+gen_tls_ca_cert: ca.crt
 gen_tls_ca_csr: ca.csr
 gen_tls_ca_key: ca.key
 gen_tls_ca_key_size: 4096

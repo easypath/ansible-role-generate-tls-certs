@@ -36,7 +36,7 @@
     mode: 0644
     owner: root
     group: root
-  when: client_key_file.changed
+  when: client_key_file.changed or gen_tls_force_copy
 
 - name: Check if the client CSR exists
   delegate_to: localhost
@@ -84,4 +84,4 @@
     mode: 0600
     owner: root
     group: root
-  when: client_cert_file.changed
+  when: client_cert_file.changed or gen_tls_force_copy
