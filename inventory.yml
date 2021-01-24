@@ -17,3 +17,4 @@ all:
     gen_tls_ca_organization: Example Inc.
     gen_tls_ca_organizationalunit: SysAdmins
     gen_tls_populate_etc_hosts: yes
+    gen_tls_tld: example

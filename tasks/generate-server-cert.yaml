@@ -58,7 +58,7 @@
     path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.csr"
     privatekey_path: "{{ gen_tls_cert_dir }}/{{ inventory_hostname_short }}.key"
     common_name: "{{inventory_hostname_short}}"
-    subject_alt_name: "DNS:{{inventory_hostname}},DNS:{{inventory_hostname_short}},IP:{{(alt_interface_ip is defined) | ternary(alt_interface_ip, ansible_default_ipv4.address)}},IP:0.0.0.0,IP:127.0.0.1"
+    subject_alt_name: "{% if gen_tls_tld is defined %}DNS:{{ inventory_hostname_short }}.{{ gen_tls_tld }},{% endif %}DNS:{{inventory_hostname}},DNS:{{inventory_hostname_short}},IP:{{(alt_interface_ip is defined) | ternary(alt_interface_ip, ansible_default_ipv4.address)}},IP:0.0.0.0,IP:127.0.0.1"
   when:
     - not server_csr.stat.exists
     - gen_tls_generate_server_cert

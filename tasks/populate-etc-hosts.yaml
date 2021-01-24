@@ -4,7 +4,7 @@
   lineinfile:
     dest: /etc/hosts
     regexp: '.*{{ item }}$'
-    line: "{{ hostvars[item].ansible_host }} {{item}}"
+    line: "{{ hostvars[item].ansible_host }} {{item}}{% if gen_tls_tld is defined %} {{ item }}.{{ gen_tls_tld }}{% endif %}"
     state: present
   when: hostvars[item].ansible_host is defined
   loop: "{{ groups.all }}"
