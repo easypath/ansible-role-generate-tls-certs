@@ -44,3 +44,8 @@ tls_server_valid_days: 730
 tls_server_key_size: 4096
 # Enable Subject Alternate Name (SAN)
 tls_server_enable_san: true
+
+# -------------------
+# POPULATE /etc/hosts
+# -------------------
+populate_etc_hosts: false

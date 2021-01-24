@@ -5,6 +5,8 @@ Generates self-signed CA, client and server certificates. Runs locally on contro
 Notes:
 - Will not overwrite any files in output cert dir
 - Will not copy the files to the remote servers if the local files are unchanged
+- Will optionally (see `populate_etc_hosts` variable) add to each machine's `/etc/hosts`
+  a line for each host in the inventory.
 
 
 Requirements
@@ -64,6 +66,7 @@ the resulting relevant files are `copy`ed to the remote target machine.
       tls_ca_locality: Rome
       tls_ca_organization: Example Inc.
       tls_ca_organizationalunit: SysAdmins
+      populate_etc_hosts: yes
   ```
 
 If you want to tinker, you can use `vagrant` with the provided `Vagrantfile`.

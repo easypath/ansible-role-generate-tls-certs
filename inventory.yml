@@ -16,3 +16,4 @@ all:
     tls_ca_locality: Rome
     tls_ca_organization: Example Inc.
     tls_ca_organizationalunit: SysAdmins
+    populate_etc_hosts: yes
